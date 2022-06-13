@@ -46,7 +46,7 @@ def runSingleLayer(X, W):
     """
     
     Y = np.tanh(np.dot(X,W))
-    L = np.argmax(Y)+1
+    L = np.argmax(Y,axis=1)+1
 
     return Y, L
 
@@ -81,7 +81,7 @@ def trainSingleLayer(XTrain, DTrain, XTest, DTest, W0, numIterations, learningRa
     ErrTest[0]  = ((YTest  - DTest )**2).sum() / NTest
 
     for n in range(numIterations):
-        grad_w = 2*sum([np.dot(XTrain[i,].reshape(XTrain.shape[1],1),((YTrain[i,]-DTrain[i,])*utils.tanhprim(np.dot(XTrain[i,],Wout))).reshape(1,Wout.shape[1])) for i in range(NTrain)])
+        grad_w = 2*XTrain.T @ ((YTrain-DTrain)*(1-YTrain**2))
         
         # Take a learning step
         Wout = Wout - learningRate * grad_w
@@ -112,8 +112,8 @@ def runMultiLayer(X, W, V):
 
     # Add your own code here
     S = np.dot(X,W)  # Calculate the weighted sum of input signals (hidden neuron)
-    H = np.tanh(S)  # Calculate the activation of the hidden neurons (use hyperbolic tangent)
-    Y = np.tanh(np.dot(H+1,V))  # Calculate the weighted sum of the hidden neurons
+    H = np.tanh(S)# Calculate the activation of the hidden neurons (use hyperbolic tangent)
+    Y = np.tanh(np.dot(np.c_[H,np.ones(S.shape[0])],V))  # Calculate the weighted sum of the hidden neurons
     L = np.argmax(Y,axis=1) + 1  # Calculate labels
     
     return Y, L, H
@@ -158,8 +158,8 @@ def trainMultiLayer(XTrain, DTrain, XTest, DTest, W0, V0, numIterations, learnin
         if not n % 1000:
             print(f'n : {n:d}')
         # Add your own code here
-        grad_v = -2*sum([(HTrain[i,]+1).reshape(W0.shape[1],1) @ np.multiply(DTrain[i,]-YTrain[i,],(1-YTrain[i,]**2).reshape(1,V0.shape[1])) for i in range(NTrain)])
-        grad_w = -2*sum([XTrain[i,].reshape(W0.shape[0],1) @ np.multiply((DTrain[i,]-YTrain[i,])@ Vout.T,(1-HTrain[i,]**2).reshape(1,W0.shape[1])) for i in range(NTrain)])
+        grad_v = 2* (np.c_[HTrain,np.ones(NTrain)]).T @ ((YTrain-DTrain)*(1-YTrain**2))
+        grad_w = 2* XTrain.T @ ((((YTrain-DTrain)*(1-YTrain**2))@Vout[0:(Vout.shape[0]-1),:].T) * (1-HTrain**2))
         # Take a learning step
         Vout = Vout - learningRate * grad_v
         Wout = Wout - learningRate * grad_w
